@@ -12,6 +12,17 @@ TODO は、次のとおり。
  以下、フォーク元の README.md をベースに TECS 対応版のビルド、実行に関する手順を加筆してあります。
  デフォルトで TECS 対応版をビルドしますが、ビルドオプションにより非 TECS 対応版に変更することができます。
  なお、TECS 対応版で、実際に動作確認まで行っているのは STM32N6570-DK 環境のみです。
+
+ ## TECS 化デバイスの追加
+
+ add_devices ブランチに登録するつもでったが、cursor の git のリポジトリ表示を見誤ったせいか、main ブランチに登録されてしまいました。
+ add_devices にアップしようとしたものと区別するために、タグを打っておきました。
+
+ * FATFS-SD-TECS
+ * KBD-LCD-TECS
+ * TECS-conversion
+ * fork-by-hiro22022
+ * tecsgen-python
  
 # TOPPERS/ASP3 Core の STM32 CubeMX 向け環境
 
