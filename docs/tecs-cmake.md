@@ -30,6 +30,32 @@ CDL の変更は `CMAKE_CONFIGURE_DEPENDS` で再 configure される。
 ruby --version    # 2.7 以降を想定
 ```
 
+### Ruby の代わりに tecsgen-python3 を使う
+
+Ruby 版（`tecsgen-rb/`）の代わりに、Python 版 [tecsgen-python3](https://github.com/ykominami/tecsgen-python3)
+を使えます（Ruby は不要）。`tecsgen` と `tecsgen-path` の2つのコマンドが入ります。
+
+```bash
+uv tool install <tecsgen-python3 のリポジトリまたは wheel>
+tecsgen --version
+
+cmake --preset Debug -DASP3_TECSGEN_COMMAND=tecsgen    # コマンド名でもフルパスでもよい
+```
+
+`ASP3_TECSGEN_COMMAND` を指定すると、`Asp3Tecs.cmake` は `tecsgen.rb` / `tecsgen.py` を探さず、
+そのコマンドを直接実行する。標準 CDL ライブラリ（`tecs/`）の場所は、同じ場所にある
+`tecsgen-path` コマンドで求め、`ASP3_TECSGEN_DIR`（マニフェストの `${ASP3_TECSGEN_DIR}/tecs`）
+をそれに置き換える。指定しなければ、従来どおり `${ASP3_TECSGEN_DIR}/tecsgen.rb`（なければ
+`tecsgen.py`）を実行する。
+
+検証状況: NUCLEO-H563ZI 向けの `asp3/sample/sample1.cdl` で、`asp3_tecs_run_generator` が
+Ruby 版と同じ出力（改行コードを除き99ファイルが一致。差は Ruby 版だけが書く `tecsgen.rbdmp`）を出すことを確認した。
+CubeMX 生成物が無い環境だったため、`cmake --preset` による configure 以降（ビルド・リンク・実機）は未確認。
+
+注意: コンパイラのパスに空白が含まれる場合（例: Windows の `C:/Program Files (x86)/…`）、
+`--cpp` に渡す文字列が壊れて失敗する（Ruby 版・Python 版とも）。PATH 上のコマンド名
+（`arm-none-eabi-gcc`）を使うこと。
+
 ## ビルド（STM32N6570-DK）
 
 TECS（既定）:
