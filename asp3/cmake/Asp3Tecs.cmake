@@ -8,10 +8,41 @@
 #    ASP3_STM32_DIR, ASP3_CORE_DIR, ASP3_TARGET_DIR
 #    ASP3_TECSGEN_DIR, ASP3_TECS_KERNEL_DIR
 #
+#  tecsgen の実行方法:
+#    従来:   ${ASP3_TECSGEN_DIR}/tecsgen.rb（ruby）または tecsgen.py（python）を実行する。
+#    コマンド: -DASP3_TECSGEN_COMMAND=<tecsgen> を指定すると、そのコマンドを直接実行する
+#            （tecsgen-python3 を `uv tool install` したときの `tecsgen`。コマンド名でもフルパスでもよい）。
+#            標準 CDL ライブラリ（tecs/）の場所は、同じ場所にある `tecsgen-path` コマンド
+#            （tecsgen-python3 に同梱）で求め、ASP3_TECSGEN_DIR をそれに置き換える。
+#
 
 if(NOT DEFINED ASP3_TECSGEN_DIR)
     get_filename_component(ASP3_TECSGEN_DIR
         "${ASP3_STM32_DIR}/../tecsgen" ABSOLUTE)
+endif()
+
+if(ASP3_TECSGEN_COMMAND)
+    find_program(ASP3_TECSGEN_COMMAND_PATH NAMES "${ASP3_TECSGEN_COMMAND}" REQUIRED)
+    get_filename_component(_tecsgen_command_dir "${ASP3_TECSGEN_COMMAND_PATH}" DIRECTORY)
+    find_program(ASP3_TECSGEN_PATH_COMMAND NAMES tecsgen-path
+        HINTS "${_tecsgen_command_dir}")
+    if(NOT ASP3_TECSGEN_PATH_COMMAND)
+        message(FATAL_ERROR
+            "tecsgen-path not found next to ${ASP3_TECSGEN_COMMAND_PATH}. "
+            "Install tecsgen-python3 (which provides tecsgen and tecsgen-path).")
+    endif()
+    execute_process(
+        COMMAND "${ASP3_TECSGEN_PATH_COMMAND}"
+        RESULT_VARIABLE _tecsgen_path_result
+        OUTPUT_VARIABLE _tecsgen_path_out
+        ERROR_VARIABLE _tecsgen_path_err
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(NOT _tecsgen_path_result EQUAL 0 OR NOT EXISTS "${_tecsgen_path_out}/tecs")
+        message(FATAL_ERROR
+            "tecsgen-path failed or tecs/ not found: '${_tecsgen_path_out}' ${_tecsgen_path_err}")
+    endif()
+    set(ASP3_TECSGEN_DIR "${_tecsgen_path_out}")
 endif()
 if(NOT DEFINED ASP3_TECS_KERNEL_DIR)
     set(ASP3_TECS_KERNEL_DIR "${ASP3_STM32_DIR}/tecs_kernel")
@@ -39,9 +70,13 @@ function(asp3_tecs_run_generator)
     if(NOT EXISTS "${TECS_CDL_FILE}")
         message(FATAL_ERROR "asp3_tecs_run_generator: CDL not found: ${TECS_CDL_FILE}")
     endif()
-    #  tecsgen.rb / tecsgen.py のどちらか存在する方を使う（同一ディレクトリ想定）。
+    #  ASP3_TECSGEN_COMMAND があれば、そのコマンドを直接実行する。
+    #  無ければ tecsgen.rb / tecsgen.py のどちらか存在する方を使う（同一ディレクトリ想定）。
     #  両方ある場合は .rb を優先（従来互換）。
-    if(EXISTS "${ASP3_TECSGEN_DIR}/tecsgen.rb")
+    if(ASP3_TECSGEN_COMMAND)
+        set(_tecsgen_script "${ASP3_TECSGEN_COMMAND_PATH}")
+        set(_tecsgen_interpreter "")
+    elseif(EXISTS "${ASP3_TECSGEN_DIR}/tecsgen.rb")
         set(_tecsgen_script "${ASP3_TECSGEN_DIR}/tecsgen.rb")
         find_program(RUBY_EXECUTABLE ruby REQUIRED)
         set(_tecsgen_interpreter "${RUBY_EXECUTABLE}")
@@ -92,9 +127,15 @@ function(asp3_tecs_run_generator)
     )
     string(REPLACE ";" " " _cpp_cmd_str "${_cpp_cmd}")
 
+    #  インタプリタがあれば「インタプリタ スクリプト」、コマンド直接実行なら「コマンド」
+    if(_tecsgen_interpreter)
+        set(_tecsgen_launcher "${_tecsgen_interpreter}" "${_tecsgen_script}")
+    else()
+        set(_tecsgen_launcher "${_tecsgen_script}")
+    endif()
+
     set(_tecsgen_cmd
-        ${_tecsgen_interpreter}
-        "${_tecsgen_script}"
+        ${_tecsgen_launcher}
         "${TECS_CDL_FILE}"
         -R ${_tecs_includes}
         --cpp "${_cpp_cmd_str}"
