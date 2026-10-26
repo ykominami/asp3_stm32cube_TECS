@@ -32,7 +32,7 @@ ruby --version    # 2.7 以降を想定
 
 ### Ruby の代わりに tecsgen-python3 を使う
 
-Ruby 版（`tecsgen-rb/`）の代わりに、Python 版 [tecsgen-python3](https://github.com/ykominami/tecsgen-python3)
+Ruby 版（`tecsgen-rb/`）の代わりに、Python 版 [tecsgen-python3-yk](https://github.com/ykominami/tecsgen-python3-yk)
 を使えます（Ruby は不要）。`tecsgen` と `tecsgen-path` の2つのコマンドが入ります。
 
 ```bash
